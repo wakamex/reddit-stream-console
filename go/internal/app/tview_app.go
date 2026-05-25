@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -974,6 +975,26 @@ func (ta *TviewApp) cycleTheme() {
 	}
 }
 
+// versionGreater returns true when a is numerically newer than b.
+// Strings like "1.10.0" and "1.9.0" compare correctly; unknown segments are treated as 0.
+func versionGreater(a, b string) bool {
+	aParts := strings.SplitN(a, ".", 3)
+	bParts := strings.SplitN(b, ".", 3)
+	for i := 0; i < 3; i++ {
+		var an, bn int
+		if i < len(aParts) {
+			an, _ = strconv.Atoi(aParts[i])
+		}
+		if i < len(bParts) {
+			bn, _ = strconv.Atoi(bParts[i])
+		}
+		if an != bn {
+			return an > bn
+		}
+	}
+	return false
+}
+
 func (ta *TviewApp) checkForUpdates() {
 	if Version == "dev" {
 		return
@@ -997,11 +1018,10 @@ func (ta *TviewApp) checkForUpdates() {
 		return
 	}
 
-	// Compare versions (strip 'v' prefix)
 	latest := strings.TrimPrefix(release.TagName, "v")
 	current := strings.TrimPrefix(Version, "v")
 
-	if latest != current && latest > current {
+	if versionGreater(latest, current) {
 		ta.latestVersion = release.TagName
 		ta.app.QueueUpdateDraw(func() {
 			// Refresh menu footer if on menu page
